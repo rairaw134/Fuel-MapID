@@ -99,61 +99,114 @@ function initMap() {
 }
 
 // =====================
-// PENCARIAN LOKASI AUTOSearch (DIPERBAIKI)
+// PENCARIAN DENGAN REKOMENDASI (AUTOCOMPLETE)
 // =====================
-async function cariLokasi(target) {
+let searchTimeout; // Timer untuk mencegah spam ke server
+
+// 1. Buat kotak dropdown secara otomatis ke dalam HTML saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("searchAwal").parentElement.insertAdjacentHTML('beforeend', '<div id="sugAwal" class="suggestions-box"></div>');
+  document.getElementById("searchTujuan").parentElement.insertAdjacentHTML('beforeend', '<div id="sugTujuan" class="suggestions-box"></div>');
+});
+
+// 2. Fungsi yang berjalan setiap kali user mengetik 1 huruf
+function onTyping(target) {
+  clearTimeout(searchTimeout); // Reset timer agar tidak jalan sebelum user selesai ngetik
+  
   let inputId = (target === 'awal') ? "searchAwal" : "searchTujuan";
-  let latId = (target === 'awal') ? "latAwal" : "latTujuan";
-  let lonId = (target === 'awal') ? "longAwal" : "longTujuan";
+  let boxId = (target === 'awal') ? "sugAwal" : "sugTujuan";
   
-  let inputEl = document.getElementById(inputId);
-  let query = inputEl.value.trim();
+  let query = document.getElementById(inputId).value.trim();
+  let box = document.getElementById(boxId);
 
-  // Jangan lakukan pencarian jika teks kosong, terlalu pendek, atau sedang loading
-  if (query.length < 3 || query === "Mencari lokasi..." || query === "Mencari nama jalan...") return;
+  // Jika ketikan kurang dari 3 huruf, sembunyikan dropdown
+  if (query.length < 3) {
+    box.style.display = "none";
+    return;
+  }
 
-  // Simpan teks asli dan ubah teks input jadi status loading
-  let originalText = query;
-  inputEl.value = "Mencari lokasi...";
-  
+  // Beri jeda 600ms setelah user berhenti mengetik, baru cari datanya (Teknik Debounce)
+  searchTimeout = setTimeout(() => fetchRekomendasi(query, target, boxId), 600);
+}
+
+// 3. Menarik 5 Rekomendasi Teratas dari Server
+async function fetchRekomendasi(query, target, boxId) {
+  let box = document.getElementById(boxId);
+  box.innerHTML = `<div class="suggestion-item"><i>Mencari rekomendasi...</i></div>`;
+  box.style.display = "block";
+
   try {
-    // Tambahkan '&countrycodes=id' agar akurat fokus mencari di negara Indonesia saja
-    let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(originalText)}&limit=1&countrycodes=id`;
-    
-    // Tambahkan header bahasa agar hasil jalan pakai bahasa Indonesia
+    let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=id`;
     let response = await fetch(url, { headers: { "Accept-Language": "id-ID,id;q=0.9" } });
     let data = await response.json();
 
     if (data.length > 0) {
-      let lat = parseFloat(data[0].lat);
-      let lon = parseFloat(data[0].lon);
-
-      // Isi Koordinat
-      document.getElementById(latId).value = lat.toFixed(6);
-      document.getElementById(lonId).value = lon.toFixed(6);
+      box.innerHTML = ""; // Hapus tulisan loading
       
-      // Auto-replace teks pencarian dengan nama lengkap resmi
-      inputEl.value = data[0].display_name;
-
-      // Update Map Marker di latar belakang
-      if (!map) initMap();
-      if (target === 'awal') {
-         if (markerAwal) map.removeLayer(markerAwal);
-         markerAwal = L.marker([lat, lon]).addTo(map);
-      } else {
-         if (markerTujuan) map.removeLayer(markerTujuan);
-         markerTujuan = L.marker([lat, lon]).addTo(map);
-      }
-      
+      // Masukkan hasil rekomendasi ke dalam list dropdown
+      data.forEach(item => {
+        let div = document.createElement("div");
+        div.className = "suggestion-item";
+        div.innerText = item.display_name; // Nama alamat lengkap
+        
+        // Apa yang terjadi kalau list ini diklik?
+        div.onclick = () => pilihRekomendasi(item, target, boxId);
+        
+        box.appendChild(div);
+      });
     } else {
-      inputEl.value = originalText; // Kembalikan teks semula
-      alert(`Lokasi "${originalText}" tidak ditemukan di Indonesia. Coba nama kota/jalan yang lebih lengkap.`);
+      box.innerHTML = `<div class="suggestion-item"><i>Lokasi tidak ditemukan</i></div>`;
+      setTimeout(() => box.style.display = "none", 2000);
     }
   } catch (error) {
-    inputEl.value = originalText; // Kembalikan teks semula
-    alert("Gagal menghubungi layanan pencarian. Periksa koneksi internet.");
+    box.innerHTML = `<div class="suggestion-item"><i>Gagal memuat jaringan</i></div>`;
   }
 }
+
+// 4. Mengeksekusi Rekomendasi yang Diklik
+function pilihRekomendasi(data, target, boxId) {
+  let inputId = (target === 'awal') ? "searchAwal" : "searchTujuan";
+  let latId = (target === 'awal') ? "latAwal" : "latTujuan";
+  let lonId = (target === 'awal') ? "longAwal" : "longTujuan";
+
+  let lat = parseFloat(data.lat);
+  let lon = parseFloat(data.lon);
+
+  // Isi teks di kotak pencarian
+  document.getElementById(inputId).value = data.display_name;
+  
+  // Isi Koordinat di latar belakang
+  document.getElementById(latId).value = lat.toFixed(6);
+  document.getElementById(lonId).value = lon.toFixed(6);
+
+  // Tutup kotak dropdown
+  document.getElementById(boxId).style.display = "none";
+
+  // Tandai Peta (Marker)
+  if (!map) initMap();
+  if (target === 'awal') {
+     if (markerAwal) map.removeLayer(markerAwal);
+     markerAwal = L.marker([lat, lon]).addTo(map);
+  } else {
+     if (markerTujuan) map.removeLayer(markerTujuan);
+     markerTujuan = L.marker([lat, lon]).addTo(map);
+  }
+}
+
+// =====================
+// PEMICU EVENT LISTENER
+// =====================
+// Jalankan fungsi onTyping HANYA saat ada input/huruf yang diketik
+document.getElementById("searchAwal").addEventListener("input", () => onTyping('awal'));
+document.getElementById("searchTujuan").addEventListener("input", () => onTyping('tujuan'));
+
+// Menutup dropdown secara otomatis kalau user mengeklik tempat sembarangan di luar kotak
+document.addEventListener("click", function(e) {
+  if (!e.target.closest('.search')) {
+    if(document.getElementById("sugAwal")) document.getElementById("sugAwal").style.display = "none";
+    if(document.getElementById("sugTujuan")) document.getElementById("sugTujuan").style.display = "none";
+  }
+});
 
 // =====================
 // PEMICU OTOMATIS (TRIGGER)
