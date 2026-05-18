@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>FuelMap ID</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <i class="fa-solid fa-gas-pump"></i>
+    <div>
+      <h1>FuelMap ID</h1>
+      <p>Penghitung Konsumsi Bahan Bakar</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3><i class="fa-solid fa-location-dot"></i> Titik Awal</h3>
+      <span class="sub">Cari lokasi atau pilih di peta</span>
+      <div class="search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="searchAwal" type="text" placeholder="Ketik lokasi awal...">
+        <button onclick="cariLokasi('awal')" class="btn-search">Cari</button>
+        <span onclick="openMap('awal')" class="btn-map">Pilih Peta</span>
+      </div>
+      <div class="grid">
+        <div>
+          <label>Latitude</label>
+          <input id="latAwal" type="text" placeholder="Lat">
+        </div>
+        <div>
+          <label>Longitude</label>
+          <input id="longAwal" type="text" placeholder="Long">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3><i class="fa-solid fa-location-dot"></i> Titik Tujuan</h3>
+      <span class="sub">Cari lokasi atau pilih di peta</span>
+      <div class="search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="searchTujuan" type="text" placeholder="Ketik lokasi tujuan...">
+        <button onclick="cariLokasi('tujuan')" class="btn-search">Cari</button>
+        <span onclick="openMap('tujuan')" class="btn-map">Pilih Peta</span>
+      </div>
+      <div class="grid">
+        <div>
+          <label>Latitude</label>
+          <input id="latTujuan" type="text" placeholder="Lat">
+        </div>
+        <div>
+          <label>Longitude</label>
+          <input id="longTujuan" type="text" placeholder="Long">
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="left">
+        <span class="sub">Pilih Kendaraan</span>
+        <div class="vehicle">
+          <button class="active" onclick="pilihKendaraan(40, this)"><i class="fa-solid fa-motorcycle"></i><small>Motor</small></button>
+          <button onclick="pilihKendaraan(12, this)"><i class="fa-solid fa-car"></i><small>Mobil</small></button>
+          <button onclick="pilihKendaraan(5, this)"><i class="fa-solid fa-truck"></i><small>Besar</small></button>
+        </div>
+      </div>
+      <div class="right">
+        <span class="sub">Pilih Jenis BBM</span>
+        <select id="bbm">
+          <option value="10000">Pertalite</option>
+          <option value="13000">Pertamax</option>
+          <option value="13500">Pertamax Green</option>
+          <option value="15000">Pertamax Turbo</option>
+          <option value="6800">Solar</option>
+          <option value="7200">Dexlite</option>
+        </select>
+        <div id="hargaBBM" class="harga">Rp 10.000/Ltr</div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="hitungBBM()">Hitung Jarak & Biaya BBM</button>
+  </div>
+
+  <div class="card hasil">
+    <h3>Hasil Perhitungan</h3>
+    <div class="grid">
+      <div class="box">
+        <p>Jarak Tempuh</p>
+        <h2 id="jarak">0 Km</h2>
+      </div>
+      <div class="box">
+        <p>BBM Dibutuhkan</p>
+        <h2 id="bbmHasil">0 Liter</h2>
+      </div>
+    </div>
+    <div class="total">
+      <p>Total Biaya</p>
+      <h2 id="biaya">Rp 0</h2>
+    </div>
+  </div>
+
+  <div id="mapModal" class="modal">
+    <div class="modal-content">
+      <div id="map"></div>
+      <button onclick="closeMap()" class="btn">Tutup Peta</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
